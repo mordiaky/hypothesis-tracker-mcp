@@ -1,0 +1,22 @@
+{
+  "name": "hypothesis-tracker",
+  "version": "1.0.0",
+  "description": "MCP server for persistent hypothesis tracking with Bayesian confidence updates",
+  "type": "module",
+  "bin": {
+    "hypothesis-tracker": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "better-sqlite3": "^11.8.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.13.14",
+    "typescript": "^5.8.2"
+  }
+}
