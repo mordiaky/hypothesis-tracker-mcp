@@ -1,113 +1,184 @@
-# Hypothesis Tracker MCP Server
+# Hypothesis Tracker MCP
 
-An MCP server that gives AI agents a persistent scientific method for tracking hypotheses across sessions. Uses SQLite for persistence with Bayesian confidence updates.
+An MCP server that gives AI agents a persistent scientific method. Track hypotheses, accumulate evidence, and update confidence via Bayesian logic — across sessions.
 
-## Installation
+Instead of agents forming implicit hypotheses in their context window and forgetting them, this server provides structured, persistent investigation with a full audit trail.
 
-```bash
-npm install
-npm run build
-```
+## Install
 
-## Usage
+### npx (recommended)
 
-Add to your MCP client configuration:
+No install needed — just add to your MCP client config:
 
 ```json
 {
   "mcpServers": {
     "hypothesis-tracker": {
-      "command": "node",
-      "args": ["/path/to/hypothesis-tracker/dist/index.js"]
+      "command": "npx",
+      "args": ["-y", "hypothesis-tracker-mcp"]
     }
   }
 }
 ```
 
-Data is stored at `~/.hypothesis-tracker/data.db`.
+### Global install
+
+```bash
+npm install -g hypothesis-tracker-mcp
+```
+
+Then add to your MCP config:
+
+```json
+{
+  "mcpServers": {
+    "hypothesis-tracker": {
+      "command": "hypothesis-tracker-mcp"
+    }
+  }
+}
+```
+
+### Claude Code
+
+Add globally for all projects:
+
+```bash
+claude mcp add --scope global hypothesis-tracker -- npx -y hypothesis-tracker-mcp
+```
+
+Or add to `~/.claude/.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "hypothesis-tracker": {
+      "command": "npx",
+      "args": ["-y", "hypothesis-tracker-mcp"]
+    }
+  }
+}
+```
+
+## Data Storage
+
+All data is stored locally in `~/.hypothesis-tracker/data.db` (SQLite with WAL mode). Nothing leaves your machine.
 
 ## Tools
 
-### hypothesis_create
+### `hypothesis_create`
 
 Create a new hypothesis with an initial confidence level.
 
-**Parameters:**
-- `title` (string, required) - Title of the hypothesis
-- `description` (string, required) - Detailed description
-- `initial_confidence` (number 0-1, required) - Starting confidence level
-- `tags` (string[], optional) - Tags for categorization
-- `context` (string, optional) - Why this hypothesis was formed
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `title` | string | yes | Title of the hypothesis |
+| `description` | string | yes | Detailed description |
+| `initial_confidence` | number (0-1) | yes | Starting confidence level |
+| `tags` | string[] | no | Tags for categorization |
+| `context` | string | no | Why this hypothesis was formed |
 
-### hypothesis_add_evidence
+### `hypothesis_add_evidence`
 
 Add evidence to a hypothesis. Automatically updates confidence using Bayesian logic.
 
-**Parameters:**
-- `hypothesis_id` (string, required) - ID of the hypothesis
-- `type` ("supporting" | "contradicting" | "neutral", required) - Evidence type
-- `description` (string, required) - Description of the evidence
-- `weight` (number 0-1, default 0.5) - Strength of the evidence
-- `source` (string, optional) - Source of the evidence
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `hypothesis_id` | string | yes | ID of the hypothesis |
+| `type` | `"supporting"` \| `"contradicting"` \| `"neutral"` | yes | Evidence type |
+| `description` | string | yes | Description of the evidence |
+| `weight` | number (0-1) | no | Strength of the evidence (default: 0.5) |
+| `source` | string | no | Source of the evidence |
 
-### hypothesis_update
+### `hypothesis_update`
 
 Manually update hypothesis fields.
 
-**Parameters:**
-- `hypothesis_id` (string, required) - ID of the hypothesis
-- `confidence` (number 0-1, optional) - New confidence level
-- `description` (string, optional) - Updated description
-- `tags` (string[], optional) - Updated tags
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `hypothesis_id` | string | yes | ID of the hypothesis |
+| `confidence` | number (0-1) | no | New confidence level |
+| `description` | string | no | Updated description |
+| `tags` | string[] | no | Updated tags |
 
-### hypothesis_list
+### `hypothesis_list`
 
 List hypotheses with filtering and sorting.
 
-**Parameters:**
-- `status` ("active" | "confirmed" | "rejected" | "all", default "active")
-- `sort_by` ("confidence" | "created" | "updated", default "confidence")
-- `tags` (string[], optional) - Filter by tags
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `status` | `"active"` \| `"confirmed"` \| `"rejected"` \| `"all"` | no | Filter by status (default: `"active"`) |
+| `sort_by` | `"confidence"` \| `"created"` \| `"updated"` | no | Sort field (default: `"confidence"`) |
+| `tags` | string[] | no | Filter by tags (matches any) |
 
-### hypothesis_resolve
+### `hypothesis_resolve`
 
 Mark a hypothesis as confirmed or rejected.
 
-**Parameters:**
-- `hypothesis_id` (string, required) - ID of the hypothesis
-- `resolution` ("confirmed" | "rejected", required) - Outcome
-- `final_evidence` (string, required) - Final evidence for the resolution
-- `confidence` (number 0-1, optional) - Final confidence override
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `hypothesis_id` | string | yes | ID of the hypothesis |
+| `resolution` | `"confirmed"` \| `"rejected"` | yes | Outcome |
+| `final_evidence` | string | yes | Final evidence for the resolution |
+| `confidence` | number (0-1) | no | Final confidence override |
 
-### hypothesis_history
+### `hypothesis_history`
 
-Get full audit trail for a hypothesis.
+Get full audit trail for a hypothesis — all evidence added, confidence changes, and resolution.
 
-**Parameters:**
-- `hypothesis_id` (string, required) - ID of the hypothesis
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `hypothesis_id` | string | yes | ID of the hypothesis |
 
-## Example Flow
+## Example: Debugging a Performance Issue
 
 ```
-1. Create hypothesis: "Redis caching will reduce API latency by 50%"
-   -> hypothesis_create(title="Redis caching reduces latency by 50%", initial_confidence=0.6)
+1. App is slow — create competing hypotheses:
 
-2. Add supporting evidence from benchmark
-   -> hypothesis_add_evidence(id, type="supporting", description="Local benchmark shows 60% reduction", weight=0.7)
+   hypothesis_create("Database queries are slow", ..., confidence=0.5)
+   hypothesis_create("Memory leak in WebSocket handler", ..., confidence=0.4)
+   hypothesis_create("Network latency to external API", ..., confidence=0.3)
 
-3. Add contradicting evidence from production
-   -> hypothesis_add_evidence(id, type="contradicting", description="Production test shows only 20% with cold cache", weight=0.6)
+2. Run profiler, add evidence:
 
-4. Check confidence history
-   -> hypothesis_history(id)
+   hypothesis_add_evidence(db_id, type="contradicting",
+     description="Profiler shows DB queries all under 10ms", weight=0.8)
+   → DB hypothesis drops from 0.5 to 0.26
 
-5. Resolve after full testing
-   -> hypothesis_resolve(id, resolution="confirmed", final_evidence="After cache warmup, consistent 45-55% reduction observed")
+   hypothesis_add_evidence(ws_id, type="supporting",
+     description="Heap snapshot shows WS connections growing unbounded", weight=0.7)
+   → WS hypothesis rises from 0.4 to 0.65
+
+3. Next session — pick up where you left off:
+
+   hypothesis_list() → shows WS leak at 65% confidence, DB at 26%
+
+4. More evidence, then resolve:
+
+   hypothesis_add_evidence(ws_id, type="supporting",
+     description="Fixed WS cleanup, memory stabilized", weight=0.9)
+
+   hypothesis_resolve(ws_id, resolution="confirmed",
+     final_evidence="WS connection cleanup fix reduced memory growth to zero")
 ```
 
-## Bayesian Update Logic
+## How the Bayesian Updates Work
 
-- **Supporting evidence:** confidence increases proportional to weight and remaining room
-- **Contradicting evidence:** confidence decreases proportional to weight and current confidence
-- **Neutral evidence:** minimal adjustment toward 0.5
-- Confidence is always clamped to [0.01, 0.99] to avoid certainty
+- **Supporting evidence** increases confidence proportional to weight and remaining room (can't exceed 0.99)
+- **Contradicting evidence** decreases confidence proportional to weight and current confidence (can't go below 0.01)
+- **Neutral evidence** nudges slightly toward 0.5
+- Confidence is always clamped to `[0.01, 0.99]` — the system never reaches absolute certainty
+
+The strength factor is 0.6, meaning a single piece of maximum-weight evidence moves confidence ~60% of the theoretical maximum. This prevents any single piece of evidence from being conclusive — you need to accumulate multiple pieces.
+
+## Use Cases
+
+- **Debugging** — track competing theories about what's broken
+- **Architecture decisions** — weigh evidence for/against approaches
+- **Root cause analysis** — systematic elimination with audit trail
+- **Research** — track what you've investigated vs. what's still open
+- **Code review** — hypothesize about potential issues, gather evidence
+
+## License
+
+MIT

@@ -1,13 +1,44 @@
 {
-  "name": "hypothesis-tracker",
+  "name": "hypothesis-tracker-mcp",
   "version": "1.0.0",
-  "description": "MCP server for persistent hypothesis tracking with Bayesian confidence updates",
+  "description": "MCP server that gives AI agents a persistent scientific method — track hypotheses, accumulate evidence, and update confidence via Bayesian logic across sessions",
   "type": "module",
+  "license": "MIT",
+  "author": "mordiaky",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mordiaky/hypothesis-tracker-mcp.git"
+  },
+  "homepage": "https://github.com/mordiaky/hypothesis-tracker-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/mordiaky/hypothesis-tracker-mcp/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "hypothesis",
+    "bayesian",
+    "ai-agent",
+    "scientific-method",
+    "evidence-tracking",
+    "confidence",
+    "debugging",
+    "investigation"
+  ],
   "bin": {
-    "hypothesis-tracker": "dist/index.js"
+    "hypothesis-tracker-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
   },
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "npm run build",
     "start": "node dist/index.js"
   },
   "dependencies": {
