@@ -16,19 +16,21 @@ export function registerTools(server: McpServer): void {
     "hypothesis_create",
     "Create a new hypothesis with an initial confidence level",
     {
-      title: z.string().describe("Title of the hypothesis"),
-      description: z.string().describe("Detailed description of the hypothesis"),
+      title: z.string().max(500).describe("Title of the hypothesis"),
+      description: z.string().max(10000).describe("Detailed description of the hypothesis"),
       initial_confidence: z
         .number()
         .min(0)
         .max(1)
         .describe("Initial confidence level (0-1)"),
       tags: z
-        .array(z.string())
+        .array(z.string().max(100))
+        .max(50)
         .optional()
         .describe("Optional tags for categorization"),
       context: z
         .string()
+        .max(10000)
         .optional()
         .describe("Optional context about why this hypothesis was formed"),
     },
@@ -60,7 +62,7 @@ export function registerTools(server: McpServer): void {
       type: z
         .enum(["supporting", "contradicting", "neutral"])
         .describe("Type of evidence"),
-      description: z.string().describe("Description of the evidence"),
+      description: z.string().max(10000).describe("Description of the evidence"),
       weight: z
         .number()
         .min(0)
@@ -69,6 +71,7 @@ export function registerTools(server: McpServer): void {
         .describe("Weight/strength of the evidence (0-1, default 0.5)"),
       source: z
         .string()
+        .max(2000)
         .optional()
         .describe("Optional source of the evidence"),
     },
@@ -159,10 +162,12 @@ export function registerTools(server: McpServer): void {
         .describe("New confidence level (0-1)"),
       description: z
         .string()
+        .max(10000)
         .optional()
         .describe("Updated description"),
       tags: z
-        .array(z.string())
+        .array(z.string().max(100))
+        .max(50)
         .optional()
         .describe("Updated tags"),
     },
@@ -250,6 +255,7 @@ export function registerTools(server: McpServer): void {
         .describe("Resolution outcome"),
       final_evidence: z
         .string()
+        .max(10000)
         .describe("Final evidence supporting the resolution"),
       confidence: z
         .number()

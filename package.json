@@ -1,6 +1,6 @@
 {
   "name": "hypothesis-tracker-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server that gives AI agents a persistent scientific method — track hypotheses, accumulate evidence, and update confidence via Bayesian logic across sessions",
   "type": "module",
   "license": "MIT",

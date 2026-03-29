@@ -1,7 +1,8 @@
 import Database from "better-sqlite3";
-import { mkdirSync, existsSync } from "node:fs";
+import { mkdirSync, existsSync, chmodSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { randomUUID } from "node:crypto";
 import type {
   Hypothesis,
   Evidence,
@@ -15,13 +16,22 @@ export function getDb(): Database.Database {
   if (!db) {
     const dataDir = join(homedir(), ".hypothesis-tracker");
     if (!existsSync(dataDir)) {
-      mkdirSync(dataDir, { recursive: true });
+      mkdirSync(dataDir, { recursive: true, mode: 0o700 });
+    } else {
+      chmodSync(dataDir, 0o700);
     }
     const dbPath = join(dataDir, "data.db");
     db = new Database(dbPath);
+    // Secure database file permissions (owner-only read/write)
+    chmodSync(dbPath, 0o600);
     db.pragma("journal_mode = WAL");
     db.pragma("foreign_keys = ON");
     initSchema(db);
+    // Secure WAL/SHM files if they exist
+    const walPath = dbPath + "-wal";
+    const shmPath = dbPath + "-shm";
+    if (existsSync(walPath)) chmodSync(walPath, 0o600);
+    if (existsSync(shmPath)) chmodSync(shmPath, 0o600);
   }
   return db;
 }
@@ -72,15 +82,15 @@ function initSchema(db: Database.Database): void {
 }
 
 function generateId(): string {
-  return `hyp_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  return `hyp_${randomUUID()}`;
 }
 
 function generateEvidenceId(): string {
-  return `ev_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  return `ev_${randomUUID()}`;
 }
 
 function generateHistoryId(): string {
-  return `ch_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  return `ch_${randomUUID()}`;
 }
 
 function now(): string {
@@ -138,9 +148,16 @@ export function getHypothesis(id: string): Hypothesis | null {
 
   if (!row) return null;
 
+  let tags: string[];
+  try {
+    tags = JSON.parse(row.tags as string);
+  } catch {
+    tags = [];
+  }
+
   return {
     ...row,
-    tags: JSON.parse(row.tags as string),
+    tags,
   } as Hypothesis;
 }
 
@@ -278,6 +295,12 @@ export function listHypotheses(
     updated: "h.updated_at DESC",
   };
 
+  // Validate sortBy against whitelist to prevent SQL injection
+  const orderClause = orderMap[sortBy];
+  if (!orderClause) {
+    throw new Error(`Invalid sort field: ${sortBy}`);
+  }
+
   const rows = database
     .prepare(
       `
@@ -289,18 +312,26 @@ export function listHypotheses(
     LEFT JOIN evidence e ON e.hypothesis_id = h.id
     ${whereClause}
     GROUP BY h.id
-    ORDER BY ${orderMap[sortBy]}
+    ORDER BY ${orderClause}
   `,
     )
     .all(...params) as Array<Record<string, unknown>>;
 
-  let results = rows.map((row) => ({
-    ...row,
-    tags: JSON.parse(row.tags as string),
-    evidence_count: (row.evidence_count as number) ?? 0,
+  let results = rows.map((row) => {
+    let tags: string[];
+    try {
+      tags = JSON.parse(row.tags as string);
+    } catch {
+      tags = [];
+    }
+    return {
+      ...row,
+      tags,
+      evidence_count: (row.evidence_count as number) ?? 0,
     supporting_count: (row.supporting_count as number) ?? 0,
     contradicting_count: (row.contradicting_count as number) ?? 0,
-  })) as HypothesisWithCounts[];
+    };
+  }) as HypothesisWithCounts[];
 
   // Filter by tags if provided
   if (tags && tags.length > 0) {
