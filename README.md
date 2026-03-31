@@ -179,6 +179,10 @@ The strength factor is 0.6, meaning a single piece of maximum-weight evidence mo
 - **Research** — track what you've investigated vs. what's still open
 - **Code review** — hypothesize about potential issues, gather evidence
 
+## Part of Thinking Tools
+
+This is the standalone version of the Hypothesis Tracker module. For the full suite (61 tools across 8 modules — including Idea Lab, Decision Matrix, Mental Models, and more), check out [Thinking Tools MCP](https://github.com/mordiaky/thinking-tools).
+
 ## License
 
 MIT
